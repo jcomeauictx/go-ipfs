@@ -28,15 +28,18 @@ To decode a CID, follow the following algorithm:
      * If N == 0x02 (CIDv2), or N == 0x03 (CIDv3), the CID version is reserved.
      * If N is equal to some other multicodec, the CID is malformed.
 '''
-import base58, logging
+import sys, logging, base58  # pylint: disable=multiple-imports
 logging.basicConfig(level=logging.DEBUG if __debug__ else logging.INFO)
 
 def decode_cid(cid):
+    '''
+    decode a CID according to given specification
+    '''
     logging.debug('CID: %r', cid)
     bcid = b''
     if len(cid) == 46 and cid.startswith(b'Qm'):
         logging.debug('we appear to have a valid CIDv0')
-        bcid = b58decode(cid)
+        bcid = base58.b58decode(cid)
     else:
         raise NotImplementedError('Multibase not yet implemented')
     logging.debug('binary CID: %r', bcid)
@@ -77,3 +80,6 @@ def decode_varint(varint):
         result <<= 7
         result |= byte & 0b01111111
     return result
+
+if __name__ == '__main__':
+    decode_cid(*(arg.encode() for arg in sys.argv))

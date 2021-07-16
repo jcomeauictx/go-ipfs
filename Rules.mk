@@ -141,3 +141,7 @@ help:
 	@echo '  coverage     - Collects coverage info from unit tests and sharness'
 	@echo
 .PHONY: help
+doctests pylint env:
+	make -f python.mk $@
+python:
+	make -f python.mk all
