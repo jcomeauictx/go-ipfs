@@ -27,6 +27,13 @@ To decode a CID, follow the following algorithm:
        * The CID's version is 1.
      * If N == 0x02 (CIDv2), or N == 0x03 (CIDv3), the CID version is reserved.
      * If N is equal to some other multicodec, the CID is malformed.
+
+for multicodecs, see //github.com/multiformats/multicodec/blob/master/table.csv
+
+some immediately useful ones:
+  0: "identity", raw binary
+  0x55 ('U'): "raw", raw binary
+  0x70 ('p'): "dag-pb" (DagProtobuf), MerkleDAG protobuf, used by CIDv0
 '''
 import sys, logging, base58  # pylint: disable=multiple-imports
 logging.basicConfig(level=logging.DEBUG if __debug__ else logging.INFO)
@@ -43,7 +50,7 @@ def decode_cid(cid):
     else:
         raise NotImplementedError('Multibase not yet implemented')
     logging.debug('binary CID: %r', bcid)
-    if len(bcid) == 34 and bcid.startswith('\x12\x20'):
+    if len(bcid) == 34 and bcid.startswith(b'\x12\x20'):
         logging.debug('multicodec: DagProtobuf, multihash: %r', bcid)
     else:
         cid_version, bcid = decode_varint(bcid)
@@ -82,4 +89,4 @@ def decode_varint(varint):
     return result
 
 if __name__ == '__main__':
-    decode_cid(*(arg.encode() for arg in sys.argv))
+    decode_cid(*(arg.encode() for arg in sys.argv[1:]))
