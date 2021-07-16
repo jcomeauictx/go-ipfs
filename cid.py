@@ -97,8 +97,8 @@ def decode_varint(bytestring):
     '''
     result = 0
     varint = []
-    for index in range(len(bytestring)):
-        byte = bytestring[index]
+    index = 0
+    for index, byte in enumerate(bytestring):
         varint.append(byte)
         if not byte & 0b10000000:
             break
