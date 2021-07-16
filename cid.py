@@ -41,9 +41,12 @@ logging.basicConfig(level=logging.DEBUG if __debug__ else logging.INFO)
 def decode_cid(cid):
     '''
     decode a CID according to given specification
+
+    >>> decode_cid(b'QmPK1s3pNYLi9ERiq3BDxKa4XosgWwFRQUydHUtz4YgpqB')
+    '0e7071c59df3b9454d1d18a15270aa36d54f89606a576dc621757afd44ad1d2e'
     '''
     logging.debug('CID: %r', cid)
-    bcid = b''
+    bcid, encoded, hashed = b'', b'', b''
     if len(cid) == 46 and cid.startswith(b'Qm'):
         logging.debug('we appear to have a valid CIDv0')
         bcid = base58.b58decode(cid)
@@ -52,41 +55,57 @@ def decode_cid(cid):
     logging.debug('binary CID: %r', bcid)
     if len(bcid) == 34 and bcid.startswith(b'\x12\x20'):
         logging.debug('multicodec: DagProtobuf, multihash: %r', bcid)
+        encoded = bcid
     else:
-        cid_version, bcid = decode_varint(bcid)
+        cid_version, encoded = decode_varint(bcid)
         logging.debug('cid_version: %s', cid_version)
         if cid_version == 1:
-            multicodec, bcid = decode_varint(bcid)
-            logging.debug('multicodec: %s, multihash: %r', multicodec, bcid)
+            multicodec, encoded = decode_varint(encoded)
+            logging.debug('multicodec: %s, multihash: %r', multicodec, encoded)
         elif cid_version in [2, 3]:
             raise NotImplementedError('Reserved version %d' % cid_version)
         else:
             raise NotImplementedError('Malformed CID')
+    multihash, multihashed = decode_varint(encoded)
+    if multihash != 0x12:
+        raise NotImplementedError('Only sha256 is currently supported')
+    hashed_size, hashed = decode_varint(multihashed)
+    if hashed_size != 32:  # 0x20 (space)
+        raise NotImplementedError('Only 32 bytes (sha256) is supported')
+    return hashed.hex()
 
-def decode_varint(varint):
+def decode_varint(bytestring):
     '''
     decode a variable-length unsigned integer
+
+    return the integer and the remainder of the bytestring
 
     see https://github.com/multiformats/unsigned-varint
 
     >>> decode_varint(bytes([0b00000001]))
-    1
+    (1, b'')
     >>> decode_varint(bytes([0b01111111]))
-    127
+    (127, b'')
     >>> decode_varint(bytes([0b10000000, 0b00000001]))
-    128
+    (128, b'')
     >>> decode_varint(bytes([0b11111111, 0b00000001]))
-    255
+    (255, b'')
     >>> decode_varint(bytes([0b10101100, 0b00000010]))
-    300
+    (300, b'')
     >>> decode_varint(bytes([0b10000000, 0b10000000, 0b00000001]))
-    16384
+    (16384, b'')
     '''
     result = 0
+    varint = []
+    for index in range(len(bytestring)):
+        byte = bytestring[index]
+        varint.append(byte)
+        if not byte & 0b10000000:
+            break
     for byte in varint[::-1]:
         result <<= 7
         result |= byte & 0b01111111
-    return result
+    return result, bytestring[index + 1:]
 
 if __name__ == '__main__':
-    decode_cid(*(arg.encode() for arg in sys.argv[1:]))
+    print(decode_cid(*(arg.encode() for arg in sys.argv[1:])))
