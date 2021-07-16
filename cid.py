@@ -34,6 +34,22 @@ some immediately useful ones:
   0: "identity", raw binary
   0x55 ('U'): "raw", raw binary
   0x70 ('p'): "dag-pb" (DagProtobuf), MerkleDAG protobuf, used by CIDv0
+
+the final hash is a representation of the contents of the Merkle DAG of the
+data. from looking at several files under ~/.ipfs/blocks, it seems to be of
+the form: 0x0a <size of remainder of block (past this size varint)>
+0x08 0x02 0x12 <size of data minus 9(?)> 0x18 <size of data itself>
+for example,
+.ipfs/blocks/OO/CIQBT4N7PS5IZ5IG2ZOUGKFK27IE33WKGJNDW2TY3LSBNQ34R6OVOOQ
+starts with (in hex) 0a 92 08 02 12 81 08 <data follows>, which after
+decoding the varints is: 10, 1170, 8, 2, 18, 1153. following the data we find:
+18 8a 09, which decodes to 24, 1162.
+
+The file itself, with the header and trailer bytes removed, is from
+https://github.com/ipfs/go-ipfs/blob/master/assets/init-doc/security-notes,
+and has 1162 bytes. The corresponding CID is
+QmQ5vhrL7uv6tuoN9KeVBwd4PwfQkXdVVmDLUZuTNxqgvm. It has 1173 bytes total
+(the 1170 above plus the initial 3 bytes 0a 92 08).
 '''
 import sys, logging, base58  # pylint: disable=multiple-imports
 logging.basicConfig(level=logging.DEBUG if __debug__ else logging.INFO)
