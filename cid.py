@@ -58,11 +58,15 @@ of 0a 0a 08 02 12 04 69 70 66 73 18 04, which decodes to 10, 10, 8, 2, 18,
 seem to have the correct size here), the actual data 'ipfs', followed by the
 marker byte 24 and the final size varint, again 4.
 '''
-import sys, logging, base58  # pylint: disable=multiple-imports
+# pylint: disable=unused-import  # for those imports used only in doctests
+import sys, logging, json  # pylint: disable=multiple-imports
+from hashlib import sha256
+from subprocess import check_output
+import base58
 logging.basicConfig(level=logging.DEBUG if __debug__ else logging.INFO)
 
 def decode_cid(cid):
-    '''
+    r'''
     decode a CID according to given specification
 
     # ubuntu-20.04.1-desktop-amd64.iso
@@ -76,8 +80,19 @@ def decode_cid(cid):
     'bfccda787baba32b59c78450ac3d20b633360b43992c77289f9ed46d843561e6'
 
     # file containing just 'ipfs'
-    >>> decode_cid(b'QmejvEPop4D7YUadeGqYWmZxHhLc4JBUCzJJHWMzdcMe2y')
+    >>> cid = 'QmejvEPop4D7YUadeGqYWmZxHhLc4JBUCzJJHWMzdcMe2y'
+    >>> hashed = decode_cid(cid.encode())
+    >>> hashed
     'f3b0e682d79b8b7a2c216d62ace28c5746a548218c77b556ec932f3a64b914b6'
+    >>> json_obj = check_output(['ipfs', 'object', 'get', cid])
+    >>> check = json.loads(json_obj)['Data'].encode()
+    >>> check
+    b'\x08\x02\x12\x04ipfs\x18\x04'
+
+    # now prepend file type (?) and length varints
+    >>> check = bytes([0x0a, len(check)]) + check
+    >>> sha256(check).hexdigest() == hashed
+    True
     '''
     logging.debug('CID: %r', cid)
     bcid, encoded, hashed = b'', b'', b''
