@@ -38,11 +38,11 @@ some immediately useful ones:
 the final hash is a representation of the contents of the Merkle DAG of the
 data. from looking at several files under ~/.ipfs/blocks, it seems to be of
 the form: 0x0a <size of remainder of block (past this size varint)>
-0x08 0x02 0x12 <size of data minus 9(?)> 0x18 <size of data itself>
+0x08 0x02 0x12 <size of data itself> <data itself> 0x18 <size of data itself>
 for example,
 .ipfs/blocks/OO/CIQBT4N7PS5IZ5IG2ZOUGKFK27IE33WKGJNDW2TY3LSBNQ34R6OVOOQ
-starts with (in hex) 0a 92 08 02 12 81 08 <data follows>, which after
-decoding the varints is: 10, 1170, 8, 2, 18, 1153. following the data we find:
+starts with (in hex) 0a 92 09 08 02 12 8a 09 <data follows>, which after
+decoding the varints is: 10, 1170, 8, 2, 18, 1162. following the data we find:
 18 8a 09, which decodes to 24, 1162.
 
 the file itself, with the header and trailer bytes removed, is from
@@ -53,10 +53,9 @@ QmQ5vhrL7uv6tuoN9KeVBwd4PwfQkXdVVmDLUZuTNxqgvm. It has 1173 bytes total
 
 let's take a much smaller example. the text 'ipfs' has a Merkle DAG
 of 0a 0a 08 02 12 04 69 70 66 73 18 04, which decodes to 10, 10, 8, 2, 18,
-4, 'ipfs', 24, 24. That's file type 10 (0a), the size (10), the usual bytes
-8, 2, and 18, followed by the actual data size (4; smaller files always
-seem to have the correct size here), the actual data 'ipfs', followed by the
-marker byte 24 and the final size varint, again 4.
+4, 'ipfs', 24, 4. That's file type 10 (0a), the size (10), the usual bytes
+8, 2, and 18, followed by the actual data size (4), the actual data 'ipfs',
+followed by the end marker byte 24 and the final size varint, again 4.
 '''
 import sys, logging, json, base64  # pylint: disable=multiple-imports
 from hashlib import sha256
@@ -165,10 +164,15 @@ def verify(cid, command=None):
 
     This is only likely to work with very small data blocks
 
+    # empty file
     >>> verify('QmbFMke1KXqnYyBBWxB74N4c5SBnJMVAiMNRcGu6x1AwQH')
     True
+
+    # the string 'ipfs'
     >>> verify('QmejvEPop4D7YUadeGqYWmZxHhLc4JBUCzJJHWMzdcMe2y')
     True
+
+    # IPFS alpha security notes
     >>> verify('QmQ5vhrL7uv6tuoN9KeVBwd4PwfQkXdVVmDLUZuTNxqgvm')
     True
     '''
