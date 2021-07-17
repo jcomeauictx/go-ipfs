@@ -58,7 +58,7 @@ of 0a 0a 08 02 12 04 69 70 66 73 18 04, which decodes to 10, 10, 8, 2, 18,
 seem to have the correct size here), the actual data 'ipfs', followed by the
 marker byte 24 and the final size varint, again 4.
 '''
-import sys, logging, json  # pylint: disable=multiple-imports
+import sys, logging, json, base64  # pylint: disable=multiple-imports
 from hashlib import sha256
 from subprocess import check_output
 import base58
@@ -159,7 +159,7 @@ def encode_varint(unsigned_integer):
     result[-1] ^= 0b10000000  # final byte lacks a continuation
     return result
 
-def verify(cid):
+def verify(cid, command=None):
     '''
     Check that the hash output of decode_cid() matches Data field of object
 
@@ -172,15 +172,20 @@ def verify(cid):
     >>> verify('QmQ5vhrL7uv6tuoN9KeVBwd4PwfQkXdVVmDLUZuTNxqgvm')
     True
     '''
-    command = ['ipfs', 'object', 'get', cid]
     hashed = decode_cid(cid.encode())
+    command = command or ['ipfs', 'object', 'get', cid]
     json_obj = check_output(command)
-    data = json.loads(json_obj)['Data'].encode()
+    if command[-2] == '--data-encoding=base64':
+        data = base64.b64decode(json.loads(json_obj)['Data'])
+    else:
+        data = json.loads(json_obj)['Data'].encode()
     data = bytes([0x0a, *encode_varint(len(data))]) + data
     logging.debug('verify data: %r', data)
     result = sha256(data).hexdigest() == hashed
+    # if it failed, we try again using base64
     # https://github.com/ipfs/go-ipfs/issues/1582
-    return result
+    command.insert(-1, '--data-encoding=base64')
+    return result or verify(cid, command=command)
 
 if __name__ == '__main__':
     print(decode_cid(*(arg.encode() for arg in sys.argv[1:])))
