@@ -45,11 +45,18 @@ starts with (in hex) 0a 92 08 02 12 81 08 <data follows>, which after
 decoding the varints is: 10, 1170, 8, 2, 18, 1153. following the data we find:
 18 8a 09, which decodes to 24, 1162.
 
-The file itself, with the header and trailer bytes removed, is from
+the file itself, with the header and trailer bytes removed, is from
 https://github.com/ipfs/go-ipfs/blob/master/assets/init-doc/security-notes,
 and has 1162 bytes. The corresponding CID is
 QmQ5vhrL7uv6tuoN9KeVBwd4PwfQkXdVVmDLUZuTNxqgvm. It has 1173 bytes total
 (the 1170 above plus the initial 3 bytes 0a 92 08).
+
+let's take a much smaller example. the text 'ipfs' has a Merkle DAG
+of 0a 0a 08 02 12 04 69 70 66 73 18 04, which decodes to 10, 10, 8, 2, 18,
+4, 'ipfs', 24, 24. That's file type 10 (0a), the size (10), the usual bytes
+8, 2, and 18, followed by the actual data size (4; smaller files always
+seem to have the correct size here), the actual data 'ipfs', followed by the
+marker byte 24 and the final size varint, again 4.
 '''
 import sys, logging, base58  # pylint: disable=multiple-imports
 logging.basicConfig(level=logging.DEBUG if __debug__ else logging.INFO)
