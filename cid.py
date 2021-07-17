@@ -148,6 +148,16 @@ def encode_varint(unsigned_integer):
     '''
     return varint for given integer
 
+    >>> list(map(bin, encode_varint(1)))  # Kenobi's first name?
+    ['0b1']
+    >>> list(map(bin, encode_varint(127)))
+    ['0b1111111']
+    >>> list(map(bin, encode_varint(128)))
+    ['0b10000000', '0b1']
+    >>> list(map(bin, encode_varint(255)))
+    ['0b11111111', '0b1']
+    >>> list(map(bin, encode_varint(300)))
+    ['0b10101100', '0b10']
     >>> list(map(bin, encode_varint(16384)))
     ['0b10000000', '0b10000000', '0b1']
     '''
