@@ -156,5 +156,22 @@ def decode_varint(bytestring):
         result |= byte & 0b01111111
     return result, bytestring[index + 1:]
 
+def verify(cid):
+    '''
+    Check that the hash output of decode_cid() matches Data field of object
+
+    This is only likely to work with very small data blocks
+
+    >>> verify('QmbFMke1KXqnYyBBWxB74N4c5SBnJMVAiMNRcGu6x1AwQH')
+    True
+    >>> verify('QmejvEPop4D7YUadeGqYWmZxHhLc4JBUCzJJHWMzdcMe2y')
+    True
+    '''
+    hashed = decode_cid(cid.encode())
+    json_obj = check_output(['ipfs', 'object', 'get', cid])
+    data = json.loads(json_obj)['Data'].encode()
+    data = bytes([0x0a, len(data)]) + data
+    return sha256(data).hexdigest() == hashed
+
 if __name__ == '__main__':
     print(decode_cid(*(arg.encode() for arg in sys.argv[1:])))
