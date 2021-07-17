@@ -172,12 +172,15 @@ def verify(cid):
     >>> verify('QmQ5vhrL7uv6tuoN9KeVBwd4PwfQkXdVVmDLUZuTNxqgvm')
     True
     '''
+    command = ['ipfs', 'object', 'get', cid]
     hashed = decode_cid(cid.encode())
-    json_obj = check_output(['ipfs', 'object', 'get', cid])
+    json_obj = check_output(command)
     data = json.loads(json_obj)['Data'].encode()
     data = bytes([0x0a, *encode_varint(len(data))]) + data
     logging.debug('verify data: %r', data)
-    return sha256(data).hexdigest() == hashed
+    result = sha256(data).hexdigest() == hashed
+    # https://github.com/ipfs/go-ipfs/issues/1582
+    return result
 
 if __name__ == '__main__':
     print(decode_cid(*(arg.encode() for arg in sys.argv[1:])))
