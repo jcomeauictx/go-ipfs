@@ -174,8 +174,9 @@ def verify(cid, command=None):
     '''
     hashed = decode_cid(cid.encode())
     command = command or ['ipfs', 'object', 'get', cid]
+    use_base64 = '--data-encoding=base64'
     json_obj = check_output(command)
-    if command[-2] == '--data-encoding=base64':
+    if command[-2] == use_base64:
         data = base64.b64decode(json.loads(json_obj)['Data'])
     else:
         data = json.loads(json_obj)['Data'].encode()
@@ -184,8 +185,10 @@ def verify(cid, command=None):
     result = sha256(data).hexdigest() == hashed
     # if it failed, we try again using base64
     # https://github.com/ipfs/go-ipfs/issues/1582
-    command.insert(-1, '--data-encoding=base64')
-    return result or verify(cid, command=command)
+    if command[-2] != use_base64:
+        command.insert(-1, use_base64)
+        return verify(cid, command=command)
+    return result
 
 if __name__ == '__main__':
     print(decode_cid(*(arg.encode() for arg in sys.argv[1:])))
