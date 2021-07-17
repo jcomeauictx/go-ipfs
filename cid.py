@@ -65,8 +65,19 @@ def decode_cid(cid):
     '''
     decode a CID according to given specification
 
+    # ubuntu-20.04.1-desktop-amd64.iso
+    # see //docs.ipfs.io/concepts/hashing/
     >>> decode_cid(b'QmPK1s3pNYLi9ERiq3BDxKa4XosgWwFRQUydHUtz4YgpqB')
     '0e7071c59df3b9454d1d18a15270aa36d54f89606a576dc621757afd44ad1d2e'
+
+    # empty file
+    # see https://docs.ipfs.io/reference/cli/ (ipfs add example.jpg)
+    >>> decode_cid(b'QmbFMke1KXqnYyBBWxB74N4c5SBnJMVAiMNRcGu6x1AwQH')
+    'bfccda787baba32b59c78450ac3d20b633360b43992c77289f9ed46d843561e6'
+
+    # file containing just 'ipfs'
+    >>> decode_cid(b'QmejvEPop4D7YUadeGqYWmZxHhLc4JBUCzJJHWMzdcMe2y')
+    'f3b0e682d79b8b7a2c216d62ace28c5746a548218c77b556ec932f3a64b914b6'
     '''
     logging.debug('CID: %r', cid)
     bcid, encoded, hashed = b'', b'', b''
