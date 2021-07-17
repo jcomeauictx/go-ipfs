@@ -58,7 +58,6 @@ of 0a 0a 08 02 12 04 69 70 66 73 18 04, which decodes to 10, 10, 8, 2, 18,
 seem to have the correct size here), the actual data 'ipfs', followed by the
 marker byte 24 and the final size varint, again 4.
 '''
-# pylint: disable=unused-import  # for those imports used only in doctests
 import sys, logging, json  # pylint: disable=multiple-imports
 from hashlib import sha256
 from subprocess import check_output
@@ -81,18 +80,8 @@ def decode_cid(cid):
 
     # file containing just 'ipfs'
     >>> cid = 'QmejvEPop4D7YUadeGqYWmZxHhLc4JBUCzJJHWMzdcMe2y'
-    >>> hashed = decode_cid(cid.encode())
-    >>> hashed
+    >>> decode_cid(cid.encode())
     'f3b0e682d79b8b7a2c216d62ace28c5746a548218c77b556ec932f3a64b914b6'
-    >>> json_obj = check_output(['ipfs', 'object', 'get', cid])
-    >>> check = json.loads(json_obj)['Data'].encode()
-    >>> check
-    b'\x08\x02\x12\x04ipfs\x18\x04'
-
-    # now prepend file type (?) and length varints
-    >>> check = bytes([0x0a, len(check)]) + check
-    >>> sha256(check).hexdigest() == hashed
-    True
     '''
     logging.debug('CID: %r', cid)
     bcid, encoded, hashed = b'', b'', b''
@@ -156,6 +145,20 @@ def decode_varint(bytestring):
         result |= byte & 0b01111111
     return result, bytestring[index + 1:]
 
+def encode_varint(unsigned_integer):
+    '''
+    return varint for given integer
+
+    >>> list(map(bin, encode_varint(16384)))
+    ['0b10000000', '0b10000000', '0b1']
+    '''
+    result = []
+    while unsigned_integer:
+        result.append((unsigned_integer & 0b01111111) | 0b10000000)
+        unsigned_integer >>= 7
+    result[-1] ^= 0b10000000  # final byte lacks a continuation
+    return result
+
 def verify(cid):
     '''
     Check that the hash output of decode_cid() matches Data field of object
@@ -166,11 +169,14 @@ def verify(cid):
     True
     >>> verify('QmejvEPop4D7YUadeGqYWmZxHhLc4JBUCzJJHWMzdcMe2y')
     True
+    >>> verify('QmQ5vhrL7uv6tuoN9KeVBwd4PwfQkXdVVmDLUZuTNxqgvm')
+    True
     '''
     hashed = decode_cid(cid.encode())
     json_obj = check_output(['ipfs', 'object', 'get', cid])
     data = json.loads(json_obj)['Data'].encode()
-    data = bytes([0x0a, len(data)]) + data
+    data = bytes([0x0a, *encode_varint(len(data))]) + data
+    logging.debug('verify data: %r', data)
     return sha256(data).hexdigest() == hashed
 
 if __name__ == '__main__':
