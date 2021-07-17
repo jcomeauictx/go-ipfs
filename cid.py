@@ -112,7 +112,7 @@ def decode_cid(cid):
     return hashed.hex()
 
 def decode_varint(bytestring):
-    '''
+    r'''
     decode a variable-length unsigned integer
 
     return the integer and the remainder of the bytestring
@@ -131,6 +131,10 @@ def decode_varint(bytestring):
     (300, b'')
     >>> decode_varint(bytes([0b10000000, 0b10000000, 0b00000001]))
     (16384, b'')
+    >>> decode_varint(b'\x80\x80\x80\x80\x80\x80\x80\x80\x80\x01')
+    Traceback (most recent call last):
+     ...
+    ValueError: Given bytestring exceeds maximum length 9
     '''
     result = 0
     varint = []
@@ -139,6 +143,8 @@ def decode_varint(bytestring):
         varint.append(byte)
         if not byte & 0b10000000:
             break
+    if len(varint) > 9:
+        raise ValueError('Given bytestring exceeds maximum length 9')
     for byte in varint[::-1]:
         result <<= 7
         result |= byte & 0b01111111
@@ -148,6 +154,8 @@ def encode_varint(unsigned_integer):
     '''
     return varint for given integer
 
+    >>> list(map(bin, encode_varint(0)))
+    ['0b0']
     >>> list(map(bin, encode_varint(1)))  # Kenobi's first name?
     ['0b1']
     >>> list(map(bin, encode_varint(127)))
@@ -160,9 +168,21 @@ def encode_varint(unsigned_integer):
     ['0b10101100', '0b10']
     >>> list(map(bin, encode_varint(16384)))
     ['0b10000000', '0b10000000', '0b1']
+    >>> encode_varint(-1)
+    Traceback (most recent call last):
+     ...
+    ValueError: Only unsigned integers allowed
+    >>> encode_varint(1 << 64)
+    Traceback (most recent call last):
+     ...
+    ValueError: Given integer exceeds maximum of 2^63
     '''
+    if unsigned_integer > 1 << 63:
+        raise ValueError('Given integer exceeds maximum of 2^63')
+    elif unsigned_integer < 0:
+        raise ValueError('Only unsigned integers allowed')
     result = []
-    while unsigned_integer:
+    while unsigned_integer or not result:
         result.append((unsigned_integer & 0b01111111) | 0b10000000)
         unsigned_integer >>= 7
     result[-1] ^= 0b10000000  # final byte lacks a continuation
